@@ -20,6 +20,7 @@ package com.epam.jdi.uitests.web.selenium.elements.complex;
 
 import com.epam.jdi.uitests.core.interfaces.complex.IDropDown;
 import com.epam.jdi.uitests.web.selenium.elements.GetElementType;
+import com.epam.jdi.uitests.web.selenium.elements.base.Clickable;
 import com.epam.jdi.uitests.web.selenium.elements.base.Element;
 import com.epam.jdi.uitests.web.selenium.elements.common.Label;
 import org.openqa.selenium.By;
@@ -29,13 +30,16 @@ import org.openqa.selenium.support.ui.Select;
 import java.util.List;
 import java.util.function.Function;
 
+import static com.epam.jdi.uitests.core.settings.JDISettings.exception;
+
 /**
  * RadioButtons control implementation
  *
  * @author Alexeenko Yan
  */
 public class Dropdown<TEnum extends Enum> extends Selector<TEnum> implements IDropDown<TEnum> {
-    private GetElementType element = new GetElementType();
+    protected GetElementType element;
+    protected GetElementType expander;
 
     public Dropdown() {
         super();
@@ -54,15 +58,38 @@ public class Dropdown<TEnum extends Enum> extends Selector<TEnum> implements IDr
         this.element = new GetElementType(selectLocator);
     }
 
+    public void setUp(By root, By value, By list, By expand, By elementByName) {
+        if (root != null) {
+            Element el = new Element(root);
+            el.setParent(getParent());
+            setParent(el);
+        }
+        if (value != null) {
+            setAvatar(value);
+            element = new GetElementType(value);
+        }
+        if (list != null)
+            allLabels = new GetElementType(list);
+        if (expand != null)
+            expander = new GetElementType(expand);
+    }
+
     protected Label element() {
-        return element.get(new Label(), getAvatar());
+        if (element == null && expander == null)
+            throw exception("'Value' element for dropdown not defined");
+        return (element == null ? expander : element).get(new Label(), getAvatar());
+    }
+    protected Clickable expander() {
+        if (element == null && expander == null)
+            throw exception("'Value' element for dropdown not defined");
+        return (expander == null ? element : expander).get(new Clickable(), getAvatar());
     }
 
     protected void expandAction(String name) {
         if (element().isDisplayed()) {
             setWaitTimeout(0);
             if (!isDisplayedAction(name))
-                element().click();
+                expander().click();
             restoreWaitTimeout();
         }
     }
@@ -183,8 +210,4 @@ public class Dropdown<TEnum extends Enum> extends Selector<TEnum> implements IDr
         element().waitAttribute(name, value);
     }
 
-    public void setUp(By root, By value, By list, By expand, By elementByName) {
-        avatar.byLocator = root;
-
-    }
 }
